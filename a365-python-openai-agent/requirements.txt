@@ -1,4 +1,6 @@
 openai-agents
-openai<2.41
 python-dotenv
-eval_type_backport; python_version < "3.10"
+microsoft-agents-a365-observability-core
+microsoft-agents-a365-runtime
+microsoft-agents-a365-observability-extensions-openai
+azure-identity

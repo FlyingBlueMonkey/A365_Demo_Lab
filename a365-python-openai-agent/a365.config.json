@@ -1,0 +1,9 @@
+{
+  "tenantId": "de537ba5-903a-4094-8e5a-54d7c18608fe",
+  "clientAppId": "b76bff60-c70e-4467-a289-ec08e7713913",
+  "agentIdentityDisplayName": "Security Architecture Assistant Identity",
+  "agentBlueprintDisplayName": "Security Architecture Assistant Blueprint",
+  "agentDescription": "Security Architecture Assistant",
+  "aiTeammate": false,
+  "useBlueprint": true
+}

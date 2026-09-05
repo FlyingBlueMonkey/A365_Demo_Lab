@@ -1,30 +1,44 @@
 # A365 Demo Lab
 
-This repository demonstrates the progression from a basic OpenAI agent to the same agent running through an A365-integrated client.
+This repository demonstrates the progression from a basic OpenAI agent to an
+Agent 365-integrated agent with observability and Azure service-principal
+authentication.
 
 The project is intentionally split into two stages:
 
 1. **Generic OpenAI Agent**: a small Python agent built with the OpenAI Agents SDK and no A365 dependency.
-2. **A365-Integrated Agent**: the same agent experience connected through A365 for stronger security controls, operational telemetry, and enterprise governance.
+2. **A365-Integrated Agent**: the same agent experience connected to Microsoft
+    Agent 365 observability for operational telemetry and enterprise integration.
 
-The first stage provides a simple baseline. The second stage shows how an existing agent can gain enterprise capabilities without changing its core purpose or conversation behavior.
+The first stage provides a simple baseline. The second stage shows how an
+existing agent can gain observability and identity integration without changing
+its core purpose or conversation behavior.
 
 ## Project Structure
 
 ```text
 A365_Demo_Lab/
+├── python-openai-agent/
+│   ├── app.py
+│   ├── requirements.txt
+│   └── readme.md
 └── a365-python-openai-agent/
     ├── app.py
     ├── a365_bootstrap.py
+    ├── a365.config.json
     ├── requirements.txt
     └── readme.md
 ```
 
-The current checkout contains the standalone stage-one implementation. The stage-two implementation will build on the same agent and prompt while adding the A365 client and its configuration.
+The standalone implementation is in `python-openai-agent`. The integrated
+implementation is in `a365-python-openai-agent` and includes Agent 365
+configuration, observability bootstrap code, and Azure identity dependencies.
 
 ## Stage 1: Generic OpenAI Agent
 
-The stage-one sample is a minimal Python application using the OpenAI Agents SDK. It creates a `Security Architecture Assistant`, sends a fixed request for a five-item security review checklist, and prints the model response to the terminal.
+The stage-one sample is a minimal Python application using the OpenAI Agents
+SDK. It creates a `Security Architecture Assistant`, sends a fixed request for
+a security review checklist, and prints the model response to the terminal.
 
 The agent is instructed to:
 
@@ -36,7 +50,8 @@ This stage is useful as a baseline because it keeps the runtime path small and e
 
 ### Run Stage 1
 
-From the `a365-python-openai-agent` directory, create and activate the virtual environment, then install the dependencies:
+From the `python-openai-agent` directory, create and activate the virtual
+environment, then install the dependencies:
 
 ```powershell
 python -m venv .venv
@@ -58,13 +73,46 @@ python app.py
 
 The model can be selected with `OPENAI_MODEL`; the default is `gpt-4.1-mini`.
 
-For complete stage-one details, see [a365-python-openai-agent/readme.md](a365-python-openai-agent/readme.md).
+For complete stage-one details, see [python-openai-agent/readme.md](python-openai-agent/readme.md).
 
 ## Stage 2: A365-Integrated Agent
 
-The second stage keeps the agent definition and user scenario the same, but routes the application through an A365-integrated client. This makes the comparison meaningful: the model capability and task remain constant while the surrounding security and operational controls become more enterprise-ready.
+The second stage keeps the agent definition and security focus, while adding
+Agent 365 observability through `a365_bootstrap.py`. The current prompt asks
+for three controls that reduce MCP tool abuse. The application configures the
+exporter before running the agent and resolves observability tokens through an
+Azure service principal.
 
-The A365-integrated client is intended to provide additional capabilities such as:
+### Run Stage 2
+
+From the `a365-python-openai-agent` directory, create the environment and
+install its dependencies:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+Configure `OPENAI_API_KEY`, `OPENAI_MODEL` (optional), `AZURE_TENANT_ID`,
+`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and
+`A365_OBSERVABILITY_SCOPE` in the environment or a private `.env` file. Then
+run:
+
+```powershell
+python app.py
+```
+
+Python 3.10 or newer is required; the current development environment uses
+Python 3.13. Do not reuse a virtual environment created with a removed Python
+installation.
+
+For complete stage-two details, see
+[a365-python-openai-agent/readme.md](a365-python-openai-agent/readme.md).
+
+The current A365 integration provides observability and identity integration;
+additional platform capabilities depend on the configured Agent 365 services
+and deployment environment.
 
 ### Security
 
@@ -90,7 +138,10 @@ The A365-integrated client is intended to provide additional capabilities such a
 - A path to apply organization-wide policies as the agent evolves to use external tools or sensitive data.
 - The ability to preserve the agent's application-level instructions while adding platform-level controls around it.
 
-These capabilities depend on the A365 client, tenant configuration, enabled services, and deployment environment. They should be verified against the specific A365 integration used by the stage-two implementation; this README describes the intended architectural benefits rather than claiming that all controls are active in the current stage-one checkout.
+These capabilities depend on the Agent 365 configuration, tenant permissions,
+enabled services, and deployment environment. Verify retention, policy, and
+security behavior against the target environment rather than assuming that
+every capability listed above is enabled locally.
 
 ## Why Compare the Two Stages?
 
@@ -104,7 +155,7 @@ Agent instructions and model call
     |
     +--> Stage 1: direct OpenAI Agents SDK path
     |
-    +--> Stage 2: A365-integrated client
+    +--> Stage 2: Agent 365 observability integration
               |
               +--> security and policy controls
               +--> telemetry and tracing
@@ -123,8 +174,6 @@ The comparison highlights an important design principle: security and observabil
 
 ## Roadmap
 
-- Add the A365 client dependency and bootstrap configuration.
-- Run the same security checklist prompt through the integrated client.
 - Capture and compare stage-one and stage-two telemetry.
 - Add representative tool calls with input validation and least-privilege access.
 - Document deployment-specific identity, policy, and monitoring configuration.

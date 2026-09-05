@@ -1,0 +1,4 @@
+openai-agents
+openai<2.41
+python-dotenv
+eval_type_backport; python_version < "3.10"

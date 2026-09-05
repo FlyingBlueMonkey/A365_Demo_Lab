@@ -3,10 +3,7 @@ import os
 from dotenv import load_dotenv
 from agents import Agent, Runner
 
-from a365_bootstrap import configure_agent365
-
 load_dotenv()
-configure_agent365()
 
 
 def build_agent() -> Agent:
@@ -21,15 +18,15 @@ def build_agent() -> Agent:
         ),
     )
 
-
 def main() -> None:
     agent = build_agent()
 
-    result = Runner.run_sync(
-        agent,
-        "Explain three controls that reduce MCP tool abuse.",
+    question = (
+          "Give me a five-item security review checklist "
+          "for a Python AI agent that calls external tools."
     )
 
+    result = Runner.run_sync(agent, question)
     print(result.final_output)
 
 
