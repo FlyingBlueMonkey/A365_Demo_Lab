@@ -2,11 +2,15 @@ import os
 
 from dotenv import load_dotenv
 from agents import Agent, Runner
+from microsoft_agents_a365.observability.extensions.openai import (
+    OpenAIAgentsTraceInstrumentor,
+)
 
 from a365_bootstrap import configure_agent365
 
 load_dotenv()
 configure_agent365()
+OpenAIAgentsTraceInstrumentor().instrument()
 
 
 def build_agent() -> Agent:
