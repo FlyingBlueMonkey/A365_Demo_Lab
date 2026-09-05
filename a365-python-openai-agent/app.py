@@ -25,11 +25,12 @@ def build_agent() -> Agent:
 def main() -> None:
     agent = build_agent()
 
-    result = Runner.run_sync(
-        agent,
-        "Explain three controls that reduce MCP tool abuse.",
+    question = (
+          "Give me a five-item security review checklist "
+          "for a Python AI agent that calls external tools."
     )
 
+    result = Runner.run_sync(agent, question)
     print(result.final_output)
 
 
