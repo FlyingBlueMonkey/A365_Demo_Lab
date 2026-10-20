@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from agents import Agent, Runner
+from microsoft_agents_a365.observability.core import BaggageBuilder
 from microsoft_agents_a365.observability.extensions.openai import (
     OpenAIAgentsTraceInstrumentor,
 )
@@ -30,11 +31,31 @@ def main() -> None:
     agent = build_agent()
 
     question = (
-          "Give me a five-item security review checklist "
-          "for a Python AI agent that calls external tools."
+        "Give me a five-item security review checklist "
+        "for a Python AI agent that calls external tools."
     )
 
-    result = Runner.run_sync(agent, question)
+    tenant_id = os.getenv("AZURE_TENANT_ID") or os.environ[
+        "AGENT365OBSERVABILITY__TENANTID"
+    ]
+    agent_id = (
+        os.getenv("A365_AGENT_ID")
+        or os.getenv("AGENT365OBSERVABILITY__AGENTID")
+        or os.getenv("AGENT_ID")
+        or os.environ["AGENT365OBSERVABILITY__CLIENTID"]
+    )
+
+    baggage = (
+        BaggageBuilder()
+        .tenant_id(tenant_id)
+        .agent_id(agent_id)
+        .agent_name("Security Architecture Assistant")
+        .build()
+    )
+
+    with baggage:
+        result = Runner.run_sync(agent, question)
+
     print(result.final_output)
 
 

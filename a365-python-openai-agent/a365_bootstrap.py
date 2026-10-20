@@ -9,9 +9,15 @@ from microsoft_agents_a365.observability.core import (
 
 
 def _credential() -> ClientSecretCredential:
-    tenant_id = os.environ["AZURE_TENANT_ID"]
-    client_id = os.environ["AZURE_CLIENT_ID"]
-    client_secret = os.environ["AZURE_CLIENT_SECRET"]
+    tenant_id = os.getenv("AZURE_TENANT_ID") or os.environ[
+        "AGENT365OBSERVABILITY__TENANTID"
+    ]
+    client_id = os.getenv("AZURE_CLIENT_ID") or os.environ[
+        "AGENT365OBSERVABILITY__CLIENTID"
+    ]
+    client_secret = os.getenv("AZURE_CLIENT_SECRET") or os.environ[
+        "AGENT365OBSERVABILITY__CLIENTSECRET"
+    ]
 
     return ClientSecretCredential(
         tenant_id=tenant_id,
@@ -31,12 +37,17 @@ def resolve_observability_token(
     Validate them against the provisioned configuration if your
     application serves more than one agent or tenant.
     """
-    expected_tenant = os.environ["AZURE_TENANT_ID"]
+    expected_tenant = os.getenv("AZURE_TENANT_ID") or os.environ[
+        "AGENT365OBSERVABILITY__TENANTID"
+    ]
 
     if tenant_id and tenant_id != expected_tenant:
         raise ValueError("Unexpected tenant ID supplied to token resolver")
 
-    scope = os.environ["A365_OBSERVABILITY_SCOPE"]
+    scope = os.getenv(
+        "A365_OBSERVABILITY_SCOPE",
+        "api://9b975845-388f-4429-889e-eab1ef63949c/.default",
+    )
     token = _credential().get_token(scope)
 
     return f"Bearer {token.token}"
