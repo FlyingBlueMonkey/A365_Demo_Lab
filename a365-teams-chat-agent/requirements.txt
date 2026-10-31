@@ -1,9 +1,0 @@
-openai-agents
-python-dotenv
-microsoft-agents-a365-observability-core
-microsoft-agents-a365-runtime
-microsoft-agents-a365-observability-extensions-openai
-azure-identity
-httpx
-microsoft-agents-hosting-aiohttp==0.9.1
-microsoft-agents-authentication-msal==0.9.1
