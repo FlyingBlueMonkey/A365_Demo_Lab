@@ -143,47 +143,6 @@ enabled services, and deployment environment. Verify retention, policy, and
 security behavior against the target environment rather than assuming that
 every capability listed above is enabled locally.
 
-## Stage 3: A365 Teams Chat Summary Agent
-
-The new example in [a365-teams-chat-agent/readme.md](a365-teams-chat-agent/readme.md)
-retains Agent 365 observability and adds delegated Microsoft Graph `Chat.Read`
-access. It lists accessible chat IDs, retrieves a bounded set of recent messages,
-and summarizes decisions, actions, and open questions with message references.
-Graph user sign-in is separate from the A365 observability service principal.
-
-After following the new example's app registration and environment setup:
-
-```powershell
-cd a365-teams-chat-agent
-python app.py --list-chats
-python app.py --chat-id "19:your-chat-id@thread.v2" --max-messages 100
-```
-
-Selected chat text is sent to the configured OpenAI model. Use only chats
-approved for that processing. This is a local CLI example, not a Teams bot or
-an A365 MCP tool integration.
-
-## Why Compare the Stages?
-
-The standalone agent makes the core application easy to inspect and test. The A365-integrated version demonstrates how the same application can be introduced into a more controlled operating model:
-
-```text
-User request
-    |
-    v
-Agent instructions and model call
-    |
-    +--> Stage 1: direct OpenAI Agents SDK path
-    |
-    +--> Stage 2: Agent 365 observability integration
-              |
-              +--> security and policy controls
-              +--> telemetry and tracing
-              +--> governance and operational visibility
-```
-
-The comparison highlights an important design principle: security and observability can be added at the client or platform boundary, allowing the agent's core behavior to remain focused and reusable.
-
 ## Development Notes
 
 - Keep secrets out of source control. The local `.env` file is for development only.
