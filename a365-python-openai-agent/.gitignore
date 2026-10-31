@@ -3,3 +3,4 @@
 __pycache__/
 *.pyc
 a365.generated.config.json
+a365.config.json

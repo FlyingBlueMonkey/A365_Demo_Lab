@@ -1,0 +1,9 @@
+{
+  "tenantId": "[Your TenantId]",
+  "clientAppId": "[Your Client App ID]",
+  "agentIdentityDisplayName": "Security Architecture Assistant Identity",
+  "agentBlueprintDisplayName": "Security Architecture Assistant Blueprint",
+  "agentDescription": "Security Architecture Assistant",
+  "aiTeammate": false,
+  "useBlueprint": true
+}
