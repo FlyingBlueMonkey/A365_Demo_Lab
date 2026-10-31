@@ -10,16 +10,15 @@ five-item security checklist request, and terminal output unchanged.
 
 ## Choose the Integration Path
 
-For new integrations, Microsoft recommends the
-[Microsoft OpenTelemetry Distro](https://learn.microsoft.com/en-us/microsoft-agent-365/microsoft-opentelemetry).
-The Agent 365 observability SDK used by this lab's
-[OpenAI-integrated sample](../a365-python-openai-agent/readme.md) is now
-[deprecated](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/archive/observability-sdk).
-Do not blindly copy its dependency list or bootstrap into a new integration.
+Use the supported
+[Microsoft OpenTelemetry Distro](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/microsoft-opentelemetry).
+The [OpenAI-integrated sample](../a365-python-openai-agent/readme.md) now uses
+`microsoft-opentelemetry==1.5.0`. This guide uses only that supported integration
+path; do not install the standalone A365 observability SDK packages.
 
-The recommended workflow below uses the current Agent 365 onboarding and
-instrumentation guidance. A legacy-lab comparison follows for understanding
-how the existing sample maps to Ollama.
+Reuse the supported initialization and context APIs, but choose authentication
+that matches the exporting identity and replace OpenAI auto-instrumentation
+with manual Ollama agent/inference scopes.
 
 ## 1. Establish the Baseline
 
@@ -82,12 +81,17 @@ model-provider selection are independent: the model can remain local Ollama.
 
 ## 4. Add the Current Observability Components
 
-Follow the [Microsoft OpenTelemetry setup guide](https://learn.microsoft.com/en-us/microsoft-agent-365/microsoft-opentelemetry)
-and [Python migration guide](https://github.com/microsoft/opentelemetry-distro-python/blob/main/MIGRATION_A365.md)
-for the supported package names, versions, configuration, and manual span APIs.
-Record the selected dependencies in the Ollama project's existing
+Follow the [Microsoft OpenTelemetry setup guide](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/microsoft-opentelemetry)
+and [Python A365 usage guide](https://github.com/microsoft/opentelemetry-distro-python/blob/main/A365_DOCUMENTATION.md).
+Add `microsoft-opentelemetry==1.5.0` to the Ollama project's existing
 [requirements.txt](../python-ollama-agent/requirements.txt), keeping `ollama`
-and `python-dotenv`, then reinstall through its virtual environment.
+and `python-dotenv`. Add `azure-identity` if adapting the lab's direct
+service-principal resolver, then reinstall through its virtual environment.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip check
+```
 
 For an AI-guided implementation, the official
 [Agent 365 Skills workflow](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/get-started)
@@ -107,6 +111,8 @@ Whether implementing manually or with skills, make these changes:
 1. Add an observability initialization module in the Ollama project. Load `.env`
    before initialization and configure the telemetry provider/exporter once,
    before starting the agent run. Use a distinct Ollama service name.
+   Initialize with `use_microsoft_opentelemetry(enable_a365=True, ...)` from
+   `microsoft.opentelemetry` and an OpenTelemetry `Resource` for service metadata.
 2. Configure authentication for the chosen exporter route using the current
    authentication guide. Keep telemetry credentials separate from Ollama client
    configuration and from interactive CLI authentication.
@@ -118,6 +124,12 @@ Whether implementing manually or with skills, make these changes:
    span and a nested inference span around the existing `client.chat(...)` call.
    Record operation `invoke_agent` for the root and `chat` for inference, using
    the supported semantic conventions, provider `ollama`, and the selected model.
+   Import `BaggageBuilder`, `AgentDetails`, `Request`, `InvokeAgentScope`,
+   `InvokeAgentScopeDetails`, `InferenceScope`, `InferenceCallDetails`, and
+   `InferenceOperationType` from `microsoft.opentelemetry.a365.core`.
+   Use `InvokeAgentScope.start(...)` around the run and nested
+   `InferenceScope.start(...)` around model inference. For manual scopes, set
+   `ENABLE_OBSERVABILITY=true` before initializing telemetry.
 5. Record actual input/output token counts when present in Ollama's
    `prompt_eval_count` and `eval_count` response fields. Leave missing values
    unset rather than inventing usage numbers. Capture failures and latency
@@ -126,8 +138,8 @@ Whether implementing manually or with skills, make these changes:
    telemetry provider at process exit so this short-lived script does not lose
    its final batch. Use the selected distro's documented lifecycle API.
 
-Native Ollama calls do not emit OpenAI Agents SDK trace events. Do not install
-or invoke `OpenAIAgentsTraceInstrumentor` to trace this client. Generic HTTP
+Native Ollama calls do not emit OpenAI Agents SDK trace events. OpenAI Agents
+auto-instrumentation cannot trace this client. Generic HTTP
 instrumentation alone is not a substitute for agent and inference spans.
 
 ## 5. Configure Authentication and Data Handling
@@ -138,9 +150,20 @@ The registered agent-instance identity and exporting token must match. Where
 the documented flow requires a Federated Managed Identity exchange, a blueprint
 client secret by itself is not the final agent-instance observability token.
 
-Use the environment variable names required by your selected distro and token
-implementation. Do not assume the legacy sample's `AZURE_*` variables or
-`ENABLE_A365_OBSERVABILITY_EXPORTER` switch configure the new distro.
+The supported distro retains `ENABLE_A365_OBSERVABILITY_EXPORTER` as its HTTP
+export switch. With `enable_a365=True`, set it to `false` for local console
+validation and `true` for service export. Use `a365_use_s2s_endpoint=True` when
+using app-only authentication. The lab bootstrap also reads `AZURE_*` variables;
+these configure its custom resolver, not the distro's general authentication.
+
+The existing OpenAI bootstrap deliberately supports a standard Entra service
+principal with the observability application role and admin consent, and requires
+its agent ID to equal its client ID. For the registered Ollama instance created
+in step 3, replace that direct credential acquisition with the supported
+agent-instance token flow. Do not reuse blueprint credentials as though they
+were the final agent-instance credentials. If you instead choose the standard
+service-principal pattern, use its client ID consistently and grant the required
+observability application role; do not label it as the registered instance.
 Keep secrets out of source control and logs; use managed/workload identity where
 supported for deployment rather than committing client secrets.
 
@@ -153,30 +176,19 @@ Local model inference does not mean all data stays local after adding A365:
 telemetry is sent to Microsoft services. Verify what is exported and the target
 tenant's retention, access, and audit policies.
 
-## Legacy Lab Comparison
-
-For an explicitly legacy SDK exercise, these are the corresponding components:
+## Supported Components to Reuse
 
 | Existing OpenAI component | Ollama adaptation |
 | --- | --- |
-| A365 observability core and runtime packages | Use a deliberately selected, compatible legacy version; do not add OpenAI dependencies. |
+| `microsoft-opentelemetry==1.5.0` | Use the same supported distro; keep `ollama` and omit OpenAI dependencies. |
 | [a365_bootstrap.py](../a365-python-openai-agent/a365_bootstrap.py) | Adapt exporter setup and service naming, but review authentication for the chosen SDK version. |
 | `BaggageBuilder` | Set the actual tenant and registered agent ID before starting spans. Baggage alone does not create spans. |
-| `OpenAIAgentsTraceInstrumentor` | Replace with explicit `InvokeAgentScope` and nested `InferenceScope`. |
+| Distro OpenAI Agents auto-instrumentation | Use explicit `InvokeAgentScope` and nested `InferenceScope` instead. |
 | `Runner.run_sync(...)` | Keep Ollama's native `client.chat(...)` inside the inference scope. |
 | Inference details | Use `InferenceOperationType.CHAT`, the selected model, and provider `ollama`. |
 
-The archived SDK documentation describes `Request`, `AgentDetails`,
-`InvokeAgentScopeDetails`, `InferenceCallDetails`, and their scope factories.
-Use that version's documented signatures, not APIs mixed from different SDKs.
-
-For SDK 2.x legacy export, explicitly enable `ENABLE_A365_OBSERVABILITY_EXPORTER`
-and supply a validated, cached app-only token resolver for the exporting identity.
-SDK 1.x delegated-route permissions are different. The existing bootstrap's
-direct `ClientSecretCredential` token acquisition is not a universal replacement
-for registered agent-instance authentication. Do not combine this legacy path
-and the new distro without following the migration guide and preventing duplicate
-providers, spans, and exports.
+Use the supported distro's API signatures and only one telemetry provider.
+Do not leave old instrumentor registrations active alongside the distro.
 
 ## 6. Validate the Updated Agent
 

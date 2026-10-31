@@ -1,17 +1,15 @@
 import os
+from typing import cast
 
 from dotenv import load_dotenv
 from agents import Agent, Runner
-from microsoft_agents_a365.observability.core import BaggageBuilder
-from microsoft_agents_a365.observability.extensions.openai import (
-    OpenAIAgentsTraceInstrumentor,
-)
+from microsoft.opentelemetry.a365.core import BaggageBuilder
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
 
 from a365_bootstrap import configure_agent365
 
 load_dotenv()
-configure_agent365()
-OpenAIAgentsTraceInstrumentor().instrument()
 
 
 def build_agent() -> Agent:
@@ -28,8 +26,6 @@ def build_agent() -> Agent:
 
 
 def main() -> None:
-    agent = build_agent()
-
     question = (
         "Give me a five-item security review checklist "
         "for a Python AI agent that calls external tools."
@@ -41,8 +37,7 @@ def main() -> None:
     agent_id = (
         os.getenv("A365_AGENT_ID")
         or os.getenv("AGENT365OBSERVABILITY__AGENTID")
-        or os.getenv("AGENT_ID")
-        or os.environ["AGENT365OBSERVABILITY__CLIENTID"]
+        or os.environ["AGENT_ID"]
     )
 
     baggage = (
@@ -53,10 +48,18 @@ def main() -> None:
         .build()
     )
 
-    with baggage:
-        result = Runner.run_sync(agent, question)
-
-    print(result.final_output)
+    configure_agent365()
+    try:
+        agent = build_agent()
+        with baggage:
+            result = Runner.run_sync(agent, question)
+        print(result.final_output)
+    finally:
+        provider = cast(TracerProvider, trace.get_tracer_provider())
+        try:
+            provider.force_flush()
+        finally:
+            provider.shutdown()
 
 
 if __name__ == "__main__":

@@ -4,6 +4,9 @@ This repository demonstrates standalone security architecture assistants using
 OpenAI or local Ollama inference, plus an Agent 365-integrated OpenAI agent with
 observability and Azure service-principal authentication.
 
+The integrated implementation uses the supported `microsoft-opentelemetry`
+distribution, not the standalone A365 observability packages.
+
 The lab has two stages, with two provider choices for the standalone baseline:
 
 1. **Standalone Agent**: choose the OpenAI Agents SDK sample or the Ollama Python client sample, both with no A365 dependency.
@@ -26,12 +29,15 @@ A365_Demo_Lab/
 │   ├── app.py
 │   ├── requirements.txt
 │   └── readme.md
-└── a365-python-openai-agent/
-    ├── app.py
-    ├── a365_bootstrap.py
-    ├── a365.config.json
-    ├── requirements.txt
-    └── readme.md
+├── a365-python-openai-agent/
+│   ├── app.py
+│   ├── a365_bootstrap.py
+│   ├── a365.config.json
+│   ├── requirements.txt
+│   ├── test_app.py
+│   └── readme.md
+└── a365-python-ollama-agent/
+    └── readme.MD
 ```
 
 The standalone implementations are in
@@ -40,6 +46,8 @@ The standalone implementations are in
 is in [a365-python-openai-agent](a365-python-openai-agent/readme.md) and includes
 Agent 365 configuration, observability bootstrap code, and Azure identity
 dependencies. The Ollama sample does not include A365 telemetry or tool execution.
+The documentation-only [Ollama integration guide](a365-python-ollama-agent/readme.MD)
+describes adding the same supported distro to the native Ollama client.
 
 ## Stage 1: Generic OpenAI Agent
 
@@ -227,7 +235,9 @@ The second stage keeps the agent definition and security focus, while adding
 Agent 365 observability through `a365_bootstrap.py`. The current prompt asks
 for the same five-item security review checklist. The application configures the
 exporter before running the agent and resolves observability tokens through an
-Azure service principal.
+Azure service principal. Microsoft OpenTelemetry `1.5.0` provides automatic
+OpenAI Agents instrumentation and A365 baggage propagation. The sample uses
+the production cluster and explicit S2S export, and flushes tracing at exit.
 
 ### Run Stage 2
 
@@ -243,7 +253,13 @@ python -m pip install -r requirements.txt
 Configure `OPENAI_API_KEY`, `OPENAI_MODEL` (optional), `AZURE_TENANT_ID`,
 `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `A365_AGENT_ID` in the environment
 or a private `.env` file. `A365_OBSERVABILITY_SCOPE` is optional and defaults to
-`api://9b975845-388f-4429-889e-eab1ef63949c/.default`. Then run:
+`api://9b975845-388f-4429-889e-eab1ef63949c/.default` for this app-only resolver.
+Set `A365_AGENT_ID` equal to `AZURE_CLIENT_ID`: this sample uses standard
+service-principal S2S authentication, which requires the observability
+application role and admin consent. Registered agent-instance authentication
+requires a different token flow, not a blueprint ID substituted for the agent ID.
+Set `ENABLE_A365_OBSERVABILITY_EXPORTER=false` for console telemetry or `true`
+(the sample default) to attempt Agent 365 export. Then run:
 
 ```powershell
 python app.py
@@ -256,11 +272,18 @@ installation.
 For complete stage-two details, see
 [a365-python-openai-agent/readme.md](a365-python-openai-agent/readme.md).
 
-The current A365 integration provides observability and identity integration;
+For existing environments, follow the integrated README's package-removal
+steps before installing the replacement distro. The standalone samples need
+no A365 dependency changes.
+
+The current A365 integration provides observability and service-principal authentication;
 additional platform capabilities depend on the configured Agent 365 services
 and deployment environment.
 
 ### Security
+
+The following are platform integration opportunities, not controls implemented
+by this telemetry sample. Policy enforcement and DLP require separate integration.
 
 - Centralized authentication and credential handling instead of scattering API credentials through application code.
 - Policy enforcement around which models, endpoints, tools, and data sources the agent may use.
@@ -277,6 +300,9 @@ and deployment environment.
 - Operational visibility without requiring every individual agent implementation to build its own monitoring pipeline.
 
 ### Governance and Lifecycle Management
+
+These are potential outcomes of deployment and tenant configuration, not
+automatic consequences of installing the telemetry library.
 
 - A common integration pattern for multiple agents and teams.
 - More consistent deployment and configuration across environments.

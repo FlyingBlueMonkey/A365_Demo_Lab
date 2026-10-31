@@ -1,13 +1,12 @@
 import os
-from typing import Optional
+from functools import lru_cache
 
 from azure.identity import ClientSecretCredential
-from microsoft_agents_a365.observability.core import (
-    Agent365ExporterOptions,
-    configure,
-)
+from microsoft.opentelemetry import use_microsoft_opentelemetry
+from opentelemetry.sdk.resources import Resource
 
 
+@lru_cache(maxsize=1)
 def _credential() -> ClientSecretCredential:
     tenant_id = os.getenv("AZURE_TENANT_ID") or os.environ[
         "AGENT365OBSERVABILITY__TENANTID"
@@ -29,7 +28,7 @@ def _credential() -> ClientSecretCredential:
 def resolve_observability_token(
     agent_id: str,
     tenant_id: str,
-) -> Optional[str]:
+) -> str:
     """
     Obtain a token for the Agent 365 observability resource.
 
@@ -44,6 +43,22 @@ def resolve_observability_token(
     if tenant_id and tenant_id != expected_tenant:
         raise ValueError("Unexpected tenant ID supplied to token resolver")
 
+    expected_agent = (
+        os.getenv("A365_AGENT_ID")
+        or os.getenv("AGENT365OBSERVABILITY__AGENTID")
+        or os.environ["AGENT_ID"]
+    )
+    if agent_id != expected_agent:
+        raise ValueError("Unexpected agent ID supplied to token resolver")
+
+    client_id = os.getenv("AZURE_CLIENT_ID") or os.environ[
+        "AGENT365OBSERVABILITY__CLIENTID"
+    ]
+    if agent_id != client_id:
+        raise ValueError(
+            "This service-principal sample requires the agent ID to match the client ID"
+        )
+
     scope = os.getenv(
         "A365_OBSERVABILITY_SCOPE",
         "api://9b975845-388f-4429-889e-eab1ef63949c/.default",
@@ -54,12 +69,20 @@ def resolve_observability_token(
 
 
 def configure_agent365() -> None:
-    configure(
-        service_name="security-architecture-assistant",
-        service_namespace="chromeweb.custom-agents",
-        exporter_options=Agent365ExporterOptions(
-            cluster_category="dev",
-            token_resolver=resolve_observability_token,
+    use_microsoft_opentelemetry(
+        enable_a365=True,
+        resource=Resource.create({
+            "service.name": "security-architecture-assistant",
+            "service.namespace": "chromeweb.custom-agents",
+        }),
+        a365_token_resolver=resolve_observability_token,
+        a365_cluster_category="prod",
+        a365_use_s2s_endpoint=True,
+        a365_enable_observability_exporter=(
+            os.getenv("ENABLE_A365_OBSERVABILITY_EXPORTER", "true").lower() == "true"
         ),
-        suppress_invoke_agent_input=True,
+        a365_suppress_invoke_agent_input=True,
+        a365_exporter_disable_offline_storage=True,
+        disable_logging=True,
+        disable_metrics=True,
     )

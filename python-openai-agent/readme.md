@@ -15,6 +15,9 @@ This standalone sample has no Agent 365 dependency. For the same checklist
 using local inference without an OpenAI API key, see
 [python-ollama-agent/readme.md](../python-ollama-agent/readme.md). For telemetry
 integration, see [a365-python-openai-agent/readme.md](../a365-python-openai-agent/readme.md).
+That sample uses the supported Microsoft OpenTelemetry distribution with
+automatic OpenAI Agents instrumentation; this standalone baseline needs no
+A365 packages or migration.
 The [lab README](../readme.md#enable-and-set-up-the-a365-cli) includes discrete
 A365 CLI setup steps; they are not required to run this project.
 

@@ -22,6 +22,9 @@ CLI is required. For Agent 365 onboarding instructions, see the
 [lab README](../readme.md#enable-and-set-up-the-a365-cli). The existing
 [A365-integrated sample](../a365-python-openai-agent/readme.md) still uses OpenAI;
 this project does not export Agent 365 telemetry.
+The documentation-only [Ollama A365 guide](../a365-python-ollama-agent/readme.MD)
+describes adding the supported Microsoft OpenTelemetry distribution with manual
+agent and inference spans. Those changes have not been applied to this sample.
 
 ## Setup
 
