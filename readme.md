@@ -4,13 +4,11 @@ This repository demonstrates the progression from a basic OpenAI agent to an
 Agent 365-integrated agent with observability and Azure service-principal
 authentication.
 
-The project is intentionally split into three stages:
+The project is intentionally split into two stages:
 
 1. **Generic OpenAI Agent**: a small Python agent built with the OpenAI Agents SDK and no A365 dependency.
 2. **A365-Integrated Agent**: the same agent experience connected to Microsoft
     Agent 365 observability for operational telemetry and enterprise integration.
-3. **A365 Teams Chat Summary Agent**: an A365-instrumented agent with a read-only
-    Microsoft Graph tool that summarizes a selected Teams chat.
 
 The first stage provides a simple baseline. The second stage shows how an
 existing agent can gain observability and identity integration without changing
