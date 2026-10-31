@@ -1,12 +1,12 @@
 # A365 Demo Lab
 
-This repository demonstrates the progression from a basic OpenAI agent to an
-Agent 365-integrated agent with observability and Azure service-principal
-authentication.
+This repository demonstrates standalone security architecture assistants using
+OpenAI or local Ollama inference, plus an Agent 365-integrated OpenAI agent with
+observability and Azure service-principal authentication.
 
-The project is intentionally split into two stages:
+The lab has two stages, with two provider choices for the standalone baseline:
 
-1. **Generic OpenAI Agent**: a small Python agent built with the OpenAI Agents SDK and no A365 dependency.
+1. **Standalone Agent**: choose the OpenAI Agents SDK sample or the Ollama Python client sample, both with no A365 dependency.
 2. **A365-Integrated Agent**: the same agent experience connected to Microsoft
     Agent 365 observability for operational telemetry and enterprise integration.
 
@@ -22,6 +22,10 @@ A365_Demo_Lab/
 │   ├── app.py
 │   ├── requirements.txt
 │   └── readme.md
+├── python-ollama-agent/
+│   ├── app.py
+│   ├── requirements.txt
+│   └── readme.md
 └── a365-python-openai-agent/
     ├── app.py
     ├── a365_bootstrap.py
@@ -30,9 +34,12 @@ A365_Demo_Lab/
     └── readme.md
 ```
 
-The standalone implementation is in `python-openai-agent`. The integrated
-implementation is in `a365-python-openai-agent` and includes Agent 365
-configuration, observability bootstrap code, and Azure identity dependencies.
+The standalone implementations are in
+[python-openai-agent](python-openai-agent/readme.md) and
+[python-ollama-agent](python-ollama-agent/readme.md). The integrated implementation
+is in [a365-python-openai-agent](a365-python-openai-agent/readme.md) and includes
+Agent 365 configuration, observability bootstrap code, and Azure identity
+dependencies. The Ollama sample does not include A365 telemetry or tool execution.
 
 ## Stage 1: Generic OpenAI Agent
 
@@ -75,11 +82,150 @@ The model can be selected with `OPENAI_MODEL`; the default is `gpt-4.1-mini`.
 
 For complete stage-one details, see [python-openai-agent/readme.md](python-openai-agent/readme.md).
 
+## Stage 1 Alternative: Local Ollama Agent
+
+This sample copies the OpenAI baseline's security instructions and five-item
+checklist request, using Ollama's native Python client instead of OpenAI's SDK.
+No OpenAI API key, Azure credentials, or A365 CLI is required.
+
+1. Install [Ollama for Windows](https://ollama.com/download/windows), launch it,
+    and reopen PowerShell so the `ollama` command is available.
+2. Download the default local model and verify it is available:
+
+    ```powershell
+    ollama pull llama3.2:3b
+    ollama list
+    ```
+
+3. From the repository root, install the Python dependencies and run:
+
+    ```powershell
+    Set-Location python-ollama-agent
+    python -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    python -m pip install -r requirements.txt
+    python app.py
+    ```
+
+`OLLAMA_MODEL` defaults to `llama3.2:3b`; `OLLAMA_HOST` defaults to
+`http://localhost:11434`. Pull any replacement model before selecting it.
+The first inference can take longer while the model loads into memory.
+
+See [python-ollama-agent/readme.md](python-ollama-agent/readme.md) for configuration,
+server startup, and troubleshooting.
+
+## Enable and Set Up the A365 CLI
+
+These steps are for Agent 365 onboarding, not for the standalone samples.
+Installing the CLI does not enable Agent 365 in a tenant. Ask your administrator
+to confirm tenant enablement and the licensing required for observability.
+Blueprint setup requires Agent ID Developer (or a higher applicable role), with
+a Global Administrator available for required admin consent. Azure provisioning
+also requires an Azure subscription and appropriate resource permissions.
+See the [official prerequisites](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/get-started#prerequisites).
+
+1. **Install prerequisites.** Install the [.NET SDK](https://dotnet.microsoft.com/download)
+    (8.0 or later, with a runtime supported by the CLI version) and
+    [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows).
+    Reopen PowerShell and verify both installations:
+
+    ```powershell
+    dotnet --list-sdks
+    dotnet --list-runtimes
+    az version
+    ```
+
+2. **Install the A365 CLI.** Run this as your normal user:
+
+    ```powershell
+    dotnet tool install --global Microsoft.Agents.A365.DevTools.Cli
+    ```
+
+    If already installed, update it instead:
+
+    ```powershell
+    dotnet tool update --global Microsoft.Agents.A365.DevTools.Cli
+    ```
+
+3. **Make the command available and verify it.** Reopen PowerShell, then run:
+
+    ```powershell
+    a365 --version
+    a365 --help
+    ```
+
+    If `a365` is not found, add the per-user .NET tools folder to this session:
+
+    ```powershell
+    $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+    a365 --help
+    ```
+
+    Add that folder to your user PATH in Windows Environment Variables for future
+    sessions. Global .NET tools are available only to the user who installs them.
+
+4. **Sign in to the target tenant and subscription.** Replace the placeholders:
+
+    ```powershell
+    az login --tenant "your-tenant-id"
+    az account set --subscription "your-subscription-id"
+    az account show --query "{tenantId:tenantId, subscriptionId:id}" --output table
+    ```
+
+5. **Validate Agent 365 prerequisites and authentication.** This command works
+    without a configuration file and can prompt for interactive sign-in:
+
+    ```powershell
+    a365 setup requirements
+    ```
+
+    Complete the reported prerequisites with your tenant administrator. The CLI
+    uses the Microsoft-managed Agent 365 CLI application when available, or a
+    supported tenant-owned application. Do not disable Conditional Access to
+    bypass authentication failures.
+
+6. **Review the integrated project's configuration.** From the repository root:
+
+    ```powershell
+    Set-Location a365-python-openai-agent
+    a365 setup all --help
+    ```
+
+    Review [a365.config.json.example](a365-python-openai-agent/a365.config.json.example)
+    and your local [a365.config.json](a365-python-openai-agent/a365.config.json).
+    Use your own tenant ID and a valid CLI authentication application client ID,
+    not an example ID or a service principal Object ID. Preserve existing local
+    configuration. The CLI login application is distinct from the application's
+    runtime observability credentials.
+
+7. **Optionally provision Agent 365 resources.** Preview the configured setup:
+
+    ```powershell
+    a365 setup all --dry-run
+    ```
+
+    After reviewing the planned changes with your administrator, run:
+
+    ```powershell
+    a365 setup all
+    ```
+
+    This changes tenant resources and can create agent identities and permission
+    grants. Complete any administrator consent handoff printed by the CLI. Keep
+    generated configuration and secrets private. Registration alone does not
+    guarantee that this sample's service principal can export telemetry; validate
+    its permissions and runtime variables separately as described in
+    [a365-python-openai-agent/readme.md](a365-python-openai-agent/readme.md).
+
+For current commands and version-specific behavior, see the
+[CLI installation guide](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/agent-365-cli)
+and [setup reference](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/reference/cli/setup).
+
 ## Stage 2: A365-Integrated Agent
 
 The second stage keeps the agent definition and security focus, while adding
 Agent 365 observability through `a365_bootstrap.py`. The current prompt asks
-for three controls that reduce MCP tool abuse. The application configures the
+for the same five-item security review checklist. The application configures the
 exporter before running the agent and resolves observability tokens through an
 Azure service principal.
 
@@ -95,9 +241,9 @@ python -m pip install -r requirements.txt
 ```
 
 Configure `OPENAI_API_KEY`, `OPENAI_MODEL` (optional), `AZURE_TENANT_ID`,
-`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and
-`A365_OBSERVABILITY_SCOPE` in the environment or a private `.env` file. Then
-run:
+`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `A365_AGENT_ID` in the environment
+or a private `.env` file. `A365_OBSERVABILITY_SCOPE` is optional and defaults to
+`api://9b975845-388f-4429-889e-eab1ef63949c/.default`. Then run:
 
 ```powershell
 python app.py
@@ -153,6 +299,6 @@ every capability listed above is enabled locally.
 
 ## Roadmap
 
-- Capture and compare stage-one and stage-two telemetry.
+- Compare OpenAI and Ollama checklist output and capture stage-two telemetry.
 - Add representative tool calls with input validation and least-privilege access.
 - Document deployment-specific identity, policy, and monitoring configuration.

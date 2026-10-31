@@ -1,4 +1,4 @@
-# A365 Python OpenAI Agent
+# Python OpenAI Agent
 
 This project is a small Python demonstration of the OpenAI Agents SDK. It
 creates a security architecture assistant, sends it a fixed request for a
@@ -10,6 +10,13 @@ distinguish verified facts from suggestions, and avoid revealing credentials,
 tokens, secrets, or hidden configuration. The current example does not yet
 register or call external tools; its prompt discusses how a Python AI agent
 could call them.
+
+This standalone sample has no Agent 365 dependency. For the same checklist
+using local inference without an OpenAI API key, see
+[python-ollama-agent/readme.md](../python-ollama-agent/readme.md). For telemetry
+integration, see [a365-python-openai-agent/readme.md](../a365-python-openai-agent/readme.md).
+The [lab README](../readme.md#enable-and-set-up-the-a365-cli) includes discrete
+A365 CLI setup steps; they are not required to run this project.
 
 ## Requirements
 
@@ -41,7 +48,7 @@ Set the API key in the current PowerShell session:
 $env:OPENAI_API_KEY = "your-api-key"
 ```
 
-To persist configuration in a local `.env` file, create `a365-python-openai-agent/.env`
+To persist configuration in a local `.env` file, create `.env` in this directory
 with the following contents instead. Keep this file private and do not commit
 it to source control:
 
@@ -72,11 +79,9 @@ before it can generate a response.
 
 ## Project files
 
-- `app.py` builds the agent and runs the example request.
-- `requirements.txt` lists the Agents SDK, OpenAI SDK compatibility pin, and
+- [app.py](app.py) builds the agent and runs the example request.
+- [requirements.txt](requirements.txt) lists the Agents SDK, OpenAI SDK compatibility pin, and
 	environment-variable loader.
-- `a365_bootstrap.py` is reserved for future bootstrap or setup automation and
-	is currently empty.
 
 ## Extending the demo
 
