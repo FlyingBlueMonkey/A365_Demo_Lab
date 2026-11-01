@@ -1,4 +1,6 @@
 import os
+import argparse
+import json
 from typing import cast
 
 from dotenv import load_dotenv
@@ -7,7 +9,7 @@ from microsoft.opentelemetry.a365.core import BaggageBuilder
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 
-from a365_bootstrap import configure_agent365
+from a365_bootstrap import configure_agent365, load_identity
 
 load_dotenv()
 
@@ -25,25 +27,27 @@ def build_agent() -> Agent:
     )
 
 
-def main() -> None:
+def main(check_config: bool = False) -> None:
+    identity = load_identity()
+    if check_config:
+        print(json.dumps({
+            "tenant_id": identity.tenant_id,
+            "blueprint_id": identity.blueprint_id,
+            "agent_id": identity.agent_id,
+            "registration_id": identity.registration_id,
+            "live_registration_verified": False,
+        }, indent=2))
+        return
     question = (
         "Give me a five-item security review checklist "
         "for a Python AI agent that calls external tools."
     )
 
-    tenant_id = os.getenv("AZURE_TENANT_ID") or os.environ[
-        "AGENT365OBSERVABILITY__TENANTID"
-    ]
-    agent_id = (
-        os.getenv("A365_AGENT_ID")
-        or os.getenv("AGENT365OBSERVABILITY__AGENTID")
-        or os.environ["AGENT_ID"]
-    )
-
     baggage = (
         BaggageBuilder()
-        .tenant_id(tenant_id)
-        .agent_id(agent_id)
+        .tenant_id(identity.tenant_id)
+        .agent_id(identity.agent_id)
+        .agent_blueprint_id(identity.blueprint_id)
         .agent_name("Security Architecture Assistant")
         .build()
     )
@@ -63,4 +67,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check-config", action="store_true", help="Validate local identity metadata without network calls")
+    main(check_config=parser.parse_args().check_config)

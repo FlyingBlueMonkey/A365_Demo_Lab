@@ -60,13 +60,13 @@ Use a distinct agent name so the Ollama sample is not attributed to the OpenAI
 sample. From the Ollama project directory, preview config-free onboarding:
 
 ```powershell
-a365 setup all --agent-name "Security Architecture Assistant Ollama" --dry-run
+a365 setup all --agent-name "Security Architecture Assistant Ollama" --authmode s2s --dry-run
 ```
 
 After reviewing the planned changes with your administrator, provision it:
 
 ```powershell
-a365 setup all --agent-name "Security Architecture Assistant Ollama"
+a365 setup all --agent-name "Security Architecture Assistant Ollama" --authmode s2s
 ```
 
 These commands change tenant resources. Complete the administrator handoff
@@ -85,8 +85,8 @@ Follow the [Microsoft OpenTelemetry setup guide](https://learn.microsoft.com/en-
 and [Python A365 usage guide](https://github.com/microsoft/opentelemetry-distro-python/blob/main/A365_DOCUMENTATION.md).
 Add `microsoft-opentelemetry==1.5.0` to the Ollama project's existing
 [requirements.txt](../python-ollama-agent/requirements.txt), keeping `ollama`
-and `python-dotenv`. Add `azure-identity` if adapting the lab's direct
-service-principal resolver, then reinstall through its virtual environment.
+and `python-dotenv`. Add `httpx` when adapting the lab's blueprint FMI resolver,
+then reinstall through its virtual environment.
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -156,14 +156,14 @@ validation and `true` for service export. Use `a365_use_s2s_endpoint=True` when
 using app-only authentication. The lab bootstrap also reads `AZURE_*` variables;
 these configure its custom resolver, not the distro's general authentication.
 
-The existing OpenAI bootstrap deliberately supports a standard Entra service
-principal with the observability application role and admin consent, and requires
-its agent ID to equal its client ID. For the registered Ollama instance created
-in step 3, replace that direct credential acquisition with the supported
-agent-instance token flow. Do not reuse blueprint credentials as though they
-were the final agent-instance credentials. If you instead choose the standard
-service-principal pattern, use its client ID consistently and grant the required
-observability application role; do not label it as the registered instance.
+The OpenAI bootstrap now implements the supported blueprint-to-agent FMI flow.
+Reuse it with the Ollama instance's own tenant, blueprint client ID, distinct
+agent client ID, and registration ID. Supply a blueprint secret for the first
+exchange; the final token must represent the instance. Use `AZURE_TENANT_ID`,
+`A365_BLUEPRINT_ID`, `A365_AGENT_ID`, `A365_REGISTRATION_ID`, and
+`A365_BLUEPRINT_CLIENT_SECRET`, or the documented nonsecret CLI JSON fallbacks.
+Use `load_identity()` and attach both Agent ID and blueprint ID to baggage.
+Verify CLI registration and catalog visibility independently of telemetry.
 Keep secrets out of source control and logs; use managed/workload identity where
 supported for deployment rather than committing client secrets.
 

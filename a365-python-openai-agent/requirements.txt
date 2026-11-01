@@ -1,4 +1,4 @@
 openai-agents
 python-dotenv
 microsoft-opentelemetry==1.5.0
-azure-identity
+httpx

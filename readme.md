@@ -2,10 +2,13 @@
 
 This repository demonstrates standalone security architecture assistants using
 OpenAI or local Ollama inference, plus an Agent 365-integrated OpenAI agent with
-observability and Azure service-principal authentication.
+observability, Agent Blueprint identity, registered Agent ID, and FMI S2S authentication.
 
 The integrated implementation uses the supported `microsoft-opentelemetry`
 distribution, not the standalone A365 observability packages.
+
+For a classroom walkthrough with precise commands, instructor gates, expected
+results, and cleanup, use the [instructor-led lab guide](lab-guide.md).
 
 The lab has two stages, with two provider choices for the standalone baseline:
 
@@ -32,6 +35,7 @@ A365_Demo_Lab/
 ├── a365-python-openai-agent/
 │   ├── app.py
 │   ├── a365_bootstrap.py
+│   ├── register_agent.ps1
 │   ├── a365.config.json
 │   ├── requirements.txt
 │   ├── test_app.py
@@ -209,20 +213,20 @@ See the [official prerequisites](https://learn.microsoft.com/en-us/microsoft-age
 7. **Optionally provision Agent 365 resources.** Preview the configured setup:
 
     ```powershell
-    a365 setup all --dry-run
+    .\register_agent.ps1
     ```
 
     After reviewing the planned changes with your administrator, run:
 
     ```powershell
-    a365 setup all
+    .\register_agent.ps1 -Apply
     ```
 
     This changes tenant resources and can create agent identities and permission
     grants. Complete any administrator consent handoff printed by the CLI. Keep
-    generated configuration and secrets private. Registration alone does not
-    guarantee that this sample's service principal can export telemetry; validate
-    its permissions and runtime variables separately as described in
+    generated configuration and secrets private. Use the generated blueprint,
+    distinct `agenticAppId`, and `agentRegistrationId` for runtime configuration.
+    Verify catalog discovery and live authentication separately as described in
     [a365-python-openai-agent/readme.md](a365-python-openai-agent/readme.md).
 
 For current commands and version-specific behavior, see the
@@ -235,7 +239,8 @@ The second stage keeps the agent definition and security focus, while adding
 Agent 365 observability through `a365_bootstrap.py`. The current prompt asks
 for the same five-item security review checklist. The application configures the
 exporter before running the agent and resolves observability tokens through an
-Azure service principal. Microsoft OpenTelemetry `1.5.0` provides automatic
+Agent Blueprint through a two-step FMI exchange for the registered instance.
+Microsoft OpenTelemetry `1.5.0` provides automatic
 OpenAI Agents instrumentation and A365 baggage propagation. The sample uses
 the production cluster and explicit S2S export, and flushes tracing at exit.
 
@@ -251,13 +256,14 @@ python -m pip install -r requirements.txt
 ```
 
 Configure `OPENAI_API_KEY`, `OPENAI_MODEL` (optional), `AZURE_TENANT_ID`,
-`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and `A365_AGENT_ID` in the environment
-or a private `.env` file. `A365_OBSERVABILITY_SCOPE` is optional and defaults to
-`api://9b975845-388f-4429-889e-eab1ef63949c/.default` for this app-only resolver.
-Set `A365_AGENT_ID` equal to `AZURE_CLIENT_ID`: this sample uses standard
-service-principal S2S authentication, which requires the observability
-application role and admin consent. Registered agent-instance authentication
-requires a different token flow, not a blueprint ID substituted for the agent ID.
+`A365_BLUEPRINT_ID`, `A365_BLUEPRINT_CLIENT_SECRET`, `A365_AGENT_ID`, and
+`A365_REGISTRATION_ID` in the environment or a private `.env`. CLI JSON can
+supply the nonsecret identity metadata. Blueprint and agent client IDs must differ.
+First preview/apply [register_agent.ps1](a365-python-openai-agent/register_agent.ps1)
+and verify that the registered instance is discoverable in the target tenant.
+Creating an Entra blueprint alone is insufficient. The resolver uses fixed
+FMI/observability scopes and validates the final agent-instance token; no plain
+service-principal or OBO fallback is used.
 Set `ENABLE_A365_OBSERVABILITY_EXPORTER=false` for console telemetry or `true`
 (the sample default) to attempt Agent 365 export. Then run:
 
@@ -276,7 +282,7 @@ For existing environments, follow the integrated README's package-removal
 steps before installing the replacement distro. The standalone samples need
 no A365 dependency changes.
 
-The current A365 integration provides observability and service-principal authentication;
+The current A365 integration provides observability and registered-agent FMI authentication;
 additional platform capabilities depend on the configured Agent 365 services
 and deployment environment.
 

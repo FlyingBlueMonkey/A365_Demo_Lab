@@ -5,5 +5,6 @@
   "agentBlueprintDisplayName": "Security Architecture Assistant Blueprint",
   "agentDescription": "Security Architecture Assistant",
   "aiTeammate": false,
-  "useBlueprint": true
+  "useBlueprint": true,
+  "authMode": "s2s"
 }
